@@ -8,13 +8,18 @@ define(function (require, exports, module) {
         NodeConnection = brackets.getModule('utils/NodeConnection'),
         ExtensionUtils = brackets.getModule('utils/ExtensionUtils'),
         StatusBar = brackets.getModule('widgets/StatusBar'),
+        DropdownButton = brackets.getModule('widgets/DropdownButton'),
         EditorManager = brackets.getModule("editor/EditorManager");
 
     var modulePath = ExtensionUtils.getModulePath(module, 'node/shizimilyDomain'),
+        selectorPath = ExtensionUtils.getModulePath(module, 'selector.html'),
         nodeConnection = new NodeConnection();
 
     var ERROR_MESSAGE_UNSUPPORTED_ENCODING = 'UnsupportedEncoding',
-        APPLICATION_NAME = 'ShizimiyMultiencoding';
+        APPLICATION_NAME = 'ShizimiyMultiencoding',
+        SUPPORTED_ENCODINGS = ['', '---', 'UTF-8', 'UTF-16BE', 'UTF-16', 'SHIFT_JIS', 'WINDOWS932', 'EUC-JP', 'GB2312', 'GBK', 'GB18030', 'WINDOWS936', 'EUC-CN', 'KS_C_5601', 'WINDOWS949', 'EUC-KR', 'BIG5', 'BIG5-HKSCS', 'WINDOWS950' ];
+
+    var currentFile = {};
 
     /**
      * Log the message to the console
@@ -57,6 +62,7 @@ define(function (require, exports, module) {
                 cmd.readFile(path, fsStats._encoding).done(function (data) {
                     file._hash = fsStats._hash;
                     file._encoding = fsStats._encoding;
+                    file._encodingTo = fsStats._encoding;
                     if (file._isWatched()) {
                         file._stat = fsStats;
                         file._contents = data;
@@ -86,20 +92,29 @@ define(function (require, exports, module) {
             var cmd = nodeConnection.domains.shizimily;
 
             var _finishWrite = function (created, stat) {
-                cmd.writeFile(path, data, file._encoding).done(function (data) {
-                    try {
-                        if (created) {
-                            var parent = file._fileSystem.getDirectoryForPath(file.parentPath);
-                            file._fileSystem._handleDirectoryChange(parent, function (added, removed) {
+                cmd.writeFile(path, data, file._encodingTo).done(function (data) {
+                    cmd.getFileStats(path).done(function (stat) {
+                        stat = stats2fsStats(path, stat);
+                        try {
+                            file._hash = stat._hash;
+                            if (file._isWatched()) {
+                                file._stat = stat;
+                                file._contents = data;
+                            }
+                            if (created) {
+                                var parent = file._fileSystem.getDirectoryForPath(file.parentPath);
+                                file._fileSystem._handleDirectoryChange(parent, function (added, removed) {
+                                    callback(null, stat);
+                                });
+                            } else {
                                 callback(null, stat);
-                            });
-                        } else {
-                            callback(null, stat);
+                            }
+                        } finally {
+                            file._encoding = file._encodingTo;
+                            file._fileSystem._fireChangeEvent(file);
+                            file._fileSystem._endChange();
                         }
-                    } finally {
-                        file._fileSystem._fireChangeEvent(file);
-                        file._fileSystem._endChange();
-                    }
+                    });
                 }).fail(function (err) {
                     callback(err);
                     log('Failed to write to the file - ' + err);
@@ -156,15 +171,29 @@ define(function (require, exports, module) {
             callback = options;
             options = {};
         }
-        if (this._encoding !== undefined) {
+        if (this._encodingTo !== undefined) {
             if (!options.blind) {
                 options.expectedHash = this._hash;
                 options.expectedContents = this._contents;
             }
             writeFile(this, data, options, callback);
         } else {
+            delete this._encoding;
+            delete this._encodingTo;
             this.originalWrite(data, options, callback);
         }
+    };
+
+    /**
+     * Get the status bar text
+     * @returns {String} The status bar text
+     */
+    var getStatusBarText = function () {
+        var currentEncoding = "(none)";
+        if (currentFile !== undefined) {
+            currentEncoding = currentFile._encodingTo || "UTF-8";
+        }
+        return "Encoding: " + currentEncoding;
     };
 
     /**
@@ -172,9 +201,11 @@ define(function (require, exports, module) {
      * @param {Object} event     An event object
      * @param {Object} newEditor The editor object
      */
-    var handleActiveEditorChange = function (event, newEditor) {
-        var encoding = newEditor.document.file._encoding || 'UTF-8';
-        $("#" + APPLICATION_NAME).text("Encode: " + encoding);
+    var handleActiveEditorChange = function (event, editor) {
+        if (editor) {
+            currentFile = editor.document.file;
+            $("#" + APPLICATION_NAME + " button").text(getStatusBarText());
+        }
     };
 
     /**
@@ -191,9 +222,40 @@ define(function (require, exports, module) {
     $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
 
     /**
-     * Show the current encoding
+     * Show the encodeing status
      */
-    StatusBar.addIndicator(APPLICATION_NAME, $("<div id='" + APPLICATION_NAME + "'>Encode: (none)</div>"), true);
+    var button = new DropdownButton.DropdownButton(getStatusBarText, SUPPORTED_ENCODINGS, function (item, i) {
+        var currentEncoding = currentFile._encoding || 'UTF-8',
+            currentEncodingTo = currentFile._encodingTo || 'UTF-8',
+            html = item;
+
+        if (item === '') {
+            html = currentEncoding + "<span class='default-language'>(Default)</span>";
+            item = currentEncoding;
+        }
+        if (item === currentEncodingTo) {
+            html = "<span class='checked-language'></span>" + html;
+        }
+        return {
+            html: html,
+            enabled: true
+        };
+    });
+//    var button = new DropdownButton.DropdownButton(getStatusBarText, SUPPORTED_ENCODINGS);
+    button.setChecked(2, true);
+    button.dropdownExtraClasses = "dropdown-status-bar";
+    button.on("select", function (e, encoding) {
+        if (encoding === 'UTF-8' || !encoding) {
+            delete currentFile._encodingTo;
+        } else {
+            currentFile._encodingTo = encoding;
+        }
+        $("#" + APPLICATION_NAME + " button").text(getStatusBarText());
+    });
+
+    var encodingMenu = $('<div id="' + APPLICATION_NAME + '"></div>').html(button.$button);
+    $("button", encodingMenu).addClass("btn-status-bar");
+    StatusBar.addIndicator(APPLICATION_NAME, encodingMenu, true);
 
     /**
      * Connect to node

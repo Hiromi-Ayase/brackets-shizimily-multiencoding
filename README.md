@@ -20,6 +20,11 @@ Document is encoded and decoded by iconv-lite.
 3. All widespread singlebyte encodings: Windows 125x family, ISO-8859 family, IBM/DOS codepages, Macintosh family, KOI8 family, all others supported by iconv library. Aliases like 'latin1', 'us-ascii' also supported.
 4. All widespread multibyte encodings: CP932, CP936, CP949, CP950, GB2313, GBK, GB18030, Big5, Shift_JIS, EUC-JP.
 
+### Updates
+[2015/03/01] Encoding select, bug fix
+
+[2015/02/28] First release
+
 ### License
 MIT-licensed.
 
