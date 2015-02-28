@@ -13,6 +13,8 @@ An extension for [Brackets](https://github.com/adobe/brackets/) to read and writ
 4. Save it!
 
 ### Supported encodings
+Document is encoded and decoded by iconv-lite.
+  
 1. All node.js native encodings: utf8, ucs2 / utf16-le, ascii, binary, base64, hex.
 2. Additional unicode encodings: utf16, utf16-be, utf-7, utf-7-imap.
 3. All widespread singlebyte encodings: Windows 125x family, ISO-8859 family, IBM/DOS codepages, Macintosh family, KOI8 family, all others supported by iconv library. Aliases like 'latin1', 'us-ascii' also supported.
