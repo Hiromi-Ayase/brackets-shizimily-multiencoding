@@ -1,0 +1,20 @@
+{
+    "name": "brackets-shizimily-multiencoding",
+    "title": "Shizimily Multiencoding for Brackets",
+    "version": "0.0.1",
+    "description": "Read and write the non UTF-8 encoding by Brackets. (Decoded by icon-lite)",
+    "homepage": "",
+    "author": "Hiromi Ayase",
+    "contributors": [
+        "Ignore-Gyn", "Shizimily"
+    ],
+    "license": "MIT",
+    "categories": "editing",
+    "keywords": [
+        "encoding",
+        "ShiftJIS"
+    ],
+    "engines": {
+        "brackets": ">=1.1.0"
+    }
+}
