@@ -13,10 +13,10 @@ An extension for [Brackets](https://github.com/adobe/brackets/) to read and writ
 4. Save it!
 
 ### Supported encodings
-All node.js native encodings: utf8, ucs2 / utf16-le, ascii, binary, base64, hex.
-Additional unicode encodings: utf16, utf16-be, utf-7, utf-7-imap.
-All widespread singlebyte encodings: Windows 125x family, ISO-8859 family, IBM/DOS codepages, Macintosh family, KOI8 family, all others supported by iconv library. Aliases like 'latin1', 'us-ascii' also supported.
-All widespread multibyte encodings: CP932, CP936, CP949, CP950, GB2313, GBK, GB18030, Big5, Shift_JIS, EUC-JP.
+1. All node.js native encodings: utf8, ucs2 / utf16-le, ascii, binary, base64, hex.
+2. Additional unicode encodings: utf16, utf16-be, utf-7, utf-7-imap.
+3. All widespread singlebyte encodings: Windows 125x family, ISO-8859 family, IBM/DOS codepages, Macintosh family, KOI8 family, all others supported by iconv library. Aliases like 'latin1', 'us-ascii' also supported.
+4. All widespread multibyte encodings: CP932, CP936, CP949, CP950, GB2313, GBK, GB18030, Big5, Shift_JIS, EUC-JP.
 
 ### License
 MIT-licensed -- see `main.js` for details.

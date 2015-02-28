@@ -3,7 +3,7 @@
     "title": "Shizimily Multiencoding for Brackets",
     "version": "0.0.1",
     "description": "Read and write the non UTF-8 encoding by Brackets. (Decoded by icon-lite)",
-    "homepage": "",
+    "homepage": "https://github.com/Hiromi-Ayase/brackets-shizimily-multiencoding",
     "author": "Hiromi Ayase",
     "contributors": [
         "Ignore-Gyn", "Shizimily"
