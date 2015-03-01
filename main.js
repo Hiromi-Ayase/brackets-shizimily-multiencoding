@@ -183,10 +183,14 @@ define(function (require, exports, module) {
                 auto: DEFAULT_ENCODING.auto
             };
         }
-        if (file._encoding.auto) {
+        if (file._contents !== null && file._stat) {
+            callback(null, file._contents, file._stat);
+        } else if (file._encoding.auto) {
             this.originalRead(options, function (err, data, stats) {
                 if (err === ERROR_MESSAGE_UNSUPPORTED_ENCODING) {
                     readFile(file, callback);
+                } else if (err) {
+                    callback(err);
                 } else {
                     file._encoding.read = DEFAULT_ENCODING.read;
                     file._encoding.write = DEFAULT_ENCODING.write;
@@ -265,6 +269,7 @@ define(function (require, exports, module) {
                 currentDocument.file._encoding.read = encoding;
                 FileUtils.readAsText(currentDocument.file)
                     .then(function (text) {
+                        currentDocument._contents = undefined;
                         currentDocument.refreshText(text, new Date());
                     }).fail(function (err) {
                         console.log("Error reloading contents of " + currentDocument.file.fullPath);
