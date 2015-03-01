@@ -21,6 +21,8 @@ Document is encoded and decoded by iconv-lite.
 4. All widespread multibyte encodings: CP932, CP936, CP949, CP950, GB2313, GBK, GB18030, Big5, Shift_JIS, EUC-JP.
 
 ### Updates
+[2015/03/01] 0.0.4 Bug fix;
+
 [2015/03/01] 0.0.3 When the encoding is changed, the dialog to confirm to reload shows and many charsets are added.
 
 [2015/03/01] 0.0.2 Encoding to save file select, bug fix

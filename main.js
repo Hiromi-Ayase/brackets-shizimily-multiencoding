@@ -38,6 +38,17 @@ define(function (require, exports, module) {
     };
 
     /**
+     * Set the status bar text
+     */
+    var setStatusBarText = function () {
+        var currentEncoding = "(none)";
+        if (currentDocument.file !== undefined && currentDocument.file._encoding !== undefined) {
+            currentEncoding = currentDocument.file._encoding.write;
+        }
+        $("#" + APPLICATION_NAME + " button").text("Encoding: " + currentEncoding);
+    };
+
+    /**
      * Create FileSystemStats object from data
      * @param   {String} path The file path
      * @param   {Object} stats data by the node command
@@ -82,6 +93,7 @@ define(function (require, exports, module) {
                         file._contents = data;
                     }
                     callback(null, data, fsStats);
+                    setStatusBarText();
                 }).fail(function (err) {
                     log('Failed to read file - ' + err);
                     callback(ERROR_MESSAGE_UNSUPPORTED_ENCODING);
@@ -126,7 +138,6 @@ define(function (require, exports, module) {
                         } finally {
                             file._encoding.read = file._encoding.write;
                             file._fileSystem._fireChangeEvent(file);
-                            file._fileSystem._endChange();
                         }
                     });
                 }).fail(function (err) {
@@ -166,15 +177,28 @@ define(function (require, exports, module) {
         }
         var file = this;
         if (file._encoding === undefined) {
-            file._encoding = DEFAULT_ENCODING;
+            file._encoding = {
+                read: DEFAULT_ENCODING.read,
+                write: DEFAULT_ENCODING.write,
+                auto: DEFAULT_ENCODING.auto
+            };
         }
-        this.originalRead(options, function (err, data, stats) {
-            if (err === ERROR_MESSAGE_UNSUPPORTED_ENCODING) {
-                readFile(file, callback);
-            } else {
-                callback(err, data, stats);
-            }
-        });
+        if (file._encoding.auto) {
+            this.originalRead(options, function (err, data, stats) {
+                if (err === ERROR_MESSAGE_UNSUPPORTED_ENCODING) {
+                    readFile(file, callback);
+                } else {
+                    file._encoding.read = DEFAULT_ENCODING.read;
+                    file._encoding.write = DEFAULT_ENCODING.write;
+                    setStatusBarText();
+                    callback(err, data, stats);
+                }
+            });
+        } else if (file._encoding.read === DEFAULT_ENCODING.read) {
+            this.originalRead(options, callback);
+        } else {
+            readFile(file, callback);
+        }
     };
 
     /**
@@ -189,7 +213,11 @@ define(function (require, exports, module) {
             options = {};
         }
         if (this._encoding === undefined) {
-            this._encoding = DEFAULT_ENCODING;
+            this._encoding = {
+                read: DEFAULT_ENCODING.read,
+                write: DEFAULT_ENCODING.write,
+                auto: DEFAULT_ENCODING.auto
+            };
         }
         if (this._encoding.write !== DEFAULT_ENCODING.write) {
             if (!options.blind) {
@@ -203,18 +231,6 @@ define(function (require, exports, module) {
     };
 
     /**
-     * Get the status bar text
-     * @returns {String} The status bar text
-     */
-    var getStatusBarText = function () {
-        var currentEncoding = "(none)";
-        if (currentDocument.file !== undefined && currentDocument.file._encoding !== undefined) {
-            currentEncoding = currentDocument.file._encoding.write;
-        }
-        return "Encoding: " + currentEncoding;
-    };
-
-    /**
      * Active editor change handler
      * @param {Object} event     An event object
      * @param {Object} newEditor The editor object
@@ -222,7 +238,7 @@ define(function (require, exports, module) {
     var handleActiveEditorChange = function (event, editor) {
         if (editor) {
             currentDocument = editor.document;
-            $("#" + APPLICATION_NAME + " button").text(getStatusBarText());
+            setStatusBarText();
         }
     };
 
@@ -264,7 +280,7 @@ define(function (require, exports, module) {
      */
     var createButton = function (encodings) {
         encodings.unshift("", "---");
-        var button = new DropdownButton.DropdownButton(getStatusBarText, encodings, function (item, i) {
+        var button = new DropdownButton.DropdownButton("Encoding:(none)", encodings, function (item, i) {
             var currentEncoding = currentDocument.file._encoding || DEFAULT_ENCODING,
                 enabled = currentDocument.file._encoding !== undefined;
             var html;
@@ -277,12 +293,12 @@ define(function (require, exports, module) {
                 }
             } else {
                 html = item.category + " (" + item.code + ")";
-            }
-            if (item.code === currentEncoding.read) {
-                html = html + "<span class='default-language'>(Default)</span>";
-            }
-            if (item.code === currentEncoding.write) {
-                html = "<span class='checked-language'></span>" + html;
+                if (item.code === currentEncoding.read) {
+                    html = html + "<span class='default-language'>(Default)</span>";
+                }
+                if (item.code === currentEncoding.write) {
+                    html = "<span class='checked-language'></span>" + html;
+                }
             }
             return {
                 html: html,
@@ -303,7 +319,7 @@ define(function (require, exports, module) {
                     reloadFile("Reload the file with new encodings? - " + encoding.code, encoding.code);
                 }
             }
-            $("#" + APPLICATION_NAME + " button").text(getStatusBarText());
+            setStatusBarText();
         });
         return button;
     };
