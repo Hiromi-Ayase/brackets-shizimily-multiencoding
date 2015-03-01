@@ -20,7 +20,7 @@ define(function (require, exports, module) {
 
     var ERROR_MESSAGE_UNSUPPORTED_ENCODING = 'UnsupportedEncoding',
         APPLICATION_NAME = 'ShizimiyMultiencoding',
-        SUPPORTED_ENCODINGS = ['', '---', 'UTF-8', 'UTF-16BE', 'UTF-16', 'SHIFT_JIS', 'WINDOWS932', 'EUC-JP', 'GB2312', 'GBK', 'GB18030', 'WINDOWS936', 'EUC-CN', 'KS_C_5601', 'WINDOWS949', 'EUC-KR', 'BIG5', 'BIG5-HKSCS', 'WINDOWS950'],
+        SUPPORTED_ENCODINGS = ['', '---', 'UTF-8', 'UTF-16BE', 'UTF-16', 'SHIFT_JIS', 'WINDOWS932', 'EUC-JP', 'GB2312', 'GBK', 'GB18030', 'WINDOWS936', 'EUC-CN', 'KS_C_5601', 'WINDOWS949', 'EUC-KR', 'CP949', 'BIG5', 'BIG5-HKSCS', 'WINDOWS950'],
         DEFAULT_ENCODING = {
             read: 'UTF-8',
             write: 'UTF-8',
