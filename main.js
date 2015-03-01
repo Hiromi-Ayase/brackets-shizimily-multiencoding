@@ -183,7 +183,7 @@ define(function (require, exports, module) {
                 auto: DEFAULT_ENCODING.auto
             };
         }
-        if (file._contents !== null && file._stat) {
+        if (file._contents && file._stat) {
             callback(null, file._contents, file._stat);
         } else if (file._encoding.auto) {
             this.originalRead(options, function (err, data, stats) {
@@ -267,9 +267,9 @@ define(function (require, exports, module) {
             if (buttonId === Dialogs.DIALOG_BTN_OK) {
                 currentDocument.file._encoding.auto = encoding === undefined;
                 currentDocument.file._encoding.read = encoding;
+                currentDocument.file._contents = null;
                 FileUtils.readAsText(currentDocument.file)
                     .then(function (text) {
-                        currentDocument._contents = undefined;
                         currentDocument.refreshText(text, new Date());
                     }).fail(function (err) {
                         console.log("Error reloading contents of " + currentDocument.file.fullPath);
