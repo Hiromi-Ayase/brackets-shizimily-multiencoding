@@ -1,7 +1,7 @@
 {
     "name": "brackets-shizimily-multiencoding",
     "title": "Shizimily Multi-Encoding for Brackets",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Read and write the non UTF-8 encoding file by Brackets. (Decode and encode by iconv-lite)",
     "homepage": "https://github.com/Hiromi-Ayase/brackets-shizimily-multiencoding",
     "author": "Hiromi Ayase",
