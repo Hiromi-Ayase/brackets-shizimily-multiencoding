@@ -16,11 +16,11 @@ define(function (require, exports, module) {
 
     var modulePath = ExtensionUtils.getModulePath(module, 'node/shizimilyDomain'),
         selectorPath = ExtensionUtils.getModulePath(module, 'selector.html'),
+        configPromise = ExtensionUtils.loadFile(module, 'config.json'),
         nodeConnection = new NodeConnection();
 
     var ERROR_MESSAGE_UNSUPPORTED_ENCODING = 'UnsupportedEncoding',
         APPLICATION_NAME = 'ShizimiyMultiencoding',
-        SUPPORTED_ENCODINGS = ['', '---', 'UTF-8', 'UTF-16BE', 'UTF-16', 'SHIFT_JIS', 'WINDOWS932', 'EUC-JP', 'GB2312', 'GBK', 'GB18030', 'WINDOWS936', 'EUC-CN', 'KS_C_5601', 'WINDOWS949', 'EUC-KR', 'CP949', 'BIG5', 'BIG5-HKSCS', 'WINDOWS950'],
         DEFAULT_ENCODING = {
             read: 'UTF-8',
             write: 'UTF-8',
@@ -227,29 +227,61 @@ define(function (require, exports, module) {
     };
 
     /**
-     * Resigster the event hander to to the Editor
+     * Reload the current file
+     * @param {String} message  Dialog message
+     * @param {String} encoding Encoding
      */
-    $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
+    var reloadFile = function (message, encoding) {
+        var dialog = Dialogs.showModalDialog(DefaultDialogs, "Reload?", message, [
+            {
+                className: Dialogs.DIALOG_BTN_CLASS_PRIMARY,
+                id: Dialogs.DIALOG_BTN_OK,
+                text: "OK"
+            },
+            {
+                className: Dialogs.DIALOG_BTN_CLASS_NORMAL,
+                id: Dialogs.DIALOG_BTN_CANCEL,
+                text: "Cancel"
+            }]);
+        dialog.done(function (buttonId) {
+            if (buttonId === Dialogs.DIALOG_BTN_OK) {
+                currentDocument.file._encoding.auto = encoding === undefined;
+                currentDocument.file._encoding.read = encoding;
+                FileUtils.readAsText(currentDocument.file)
+                    .then(function (text) {
+                        currentDocument.refreshText(text, new Date());
+                    }).fail(function (err) {
+                        console.log("Error reloading contents of " + currentDocument.file.fullPath);
+                        console.log(err);
+                    });
+            }
+        });
+    };
 
     /**
      * Create the encodeing status dropdown button
+     * @returns {Object} The dropdown button object
      */
-    var button = (function () {
-        var button = new DropdownButton.DropdownButton(getStatusBarText, SUPPORTED_ENCODINGS, function (item, i) {
+    var createButton = function (encodings) {
+        encodings.unshift("", "---");
+        var button = new DropdownButton.DropdownButton(getStatusBarText, encodings, function (item, i) {
             var currentEncoding = currentDocument.file._encoding || DEFAULT_ENCODING,
-                html = item,
                 enabled = currentDocument.file._encoding !== undefined;
-
-            if (item === '') {
+            var html;
+            if (item === "---") {
+                html = "---";
+            } else if (item === "") {
                 html = 'Auto Detect' + "<span class='default-language'>";
                 if (currentEncoding.auto) {
                     html = "<span class='checked-language'></span>" + html;
                 }
+            } else {
+                html = item.category + " (" + item.code + ")";
             }
-            if (item === currentEncoding.read) {
+            if (item.code === currentEncoding.read) {
                 html = html + "<span class='default-language'>(Default)</span>";
             }
-            if (item === currentEncoding.write) {
+            if (item.code === currentEncoding.write) {
                 html = "<span class='checked-language'></span>" + html;
             }
             return {
@@ -262,65 +294,55 @@ define(function (require, exports, module) {
         button.on("select", function (e, encoding) {
             if (!encoding) {
                 currentDocument.file._encoding.auto = !currentDocument.file._encoding.auto;
+                if (currentDocument.file._encoding.auto) {
+                    reloadFile("Reload the file? (Auto Detect encoding)");
+                }
             } else {
-                currentDocument.file._encoding.write = encoding;
-                if (encoding !== currentDocument.file._encoding.read) {
-                    var dialog = Dialogs.showModalDialog(DefaultDialogs, "Reload?", "Reload the file with new encodings? - " + encoding, [
-                        {
-                            className: Dialogs.DIALOG_BTN_CLASS_PRIMARY,
-                            id: Dialogs.DIALOG_BTN_OK,
-                            text: "OK"
-                        },
-                        {
-                            className: Dialogs.DIALOG_BTN_CLASS_NORMAL,
-                            id: Dialogs.DIALOG_BTN_CANCEL,
-                            text: "Cancel"
-                        }]);
-                    dialog.done(function (buttonId) {
-                        if (buttonId === Dialogs.DIALOG_BTN_OK) {
-                            currentDocument.file._encoding.auto = false;
-                            currentDocument.file._encoding.read = encoding;
-                            FileUtils.readAsText(currentDocument.file)
-                                .then(function (text) {
-                                    currentDocument.refreshText(text, new Date());
-                                }).fail(function (err) {
-                                    console.log("Error reloading contents of " + currentDocument.file.fullPath);
-                                    console.log(err);
-                                });
-                        }
-                    });
+                currentDocument.file._encoding.write = encoding.code;
+                if (encoding.code !== currentDocument.file._encoding.read) {
+                    reloadFile("Reload the file with new encodings? - " + encoding.code, encoding.code);
                 }
             }
             $("#" + APPLICATION_NAME + " button").text(getStatusBarText());
         });
         return button;
-    }());
+    };
 
-    /**
-     * Add dropdown button
-     */
-    var encodingMenu = $('<div id="' + APPLICATION_NAME + '"></div>').html(button.$button);
-    $("button", encodingMenu).addClass("btn-status-bar");
-    StatusBar.addIndicator(APPLICATION_NAME, encodingMenu, true);
 
-    /**
-     * Connect to node
-     */
-    nodeConnection.connect(true).done(function () {
-        nodeConnection.loadDomains([modulePath], true).done(function () {
-            log("Successfully loaded");
+    configPromise.done(function (file) {
+        var config = $.parseJSON(file);
+        var button = createButton(config.encodings);
+        /**
+         * Resigster the event hander to to the Editor
+         */
+        $(EditorManager).on("activeEditorChange", handleActiveEditorChange);
+
+        /**
+         * Add dropdown button
+         */
+        var encodingMenu = $('<div id="' + APPLICATION_NAME + '"></div>').html(button.$button);
+        $("button", encodingMenu).addClass("btn-status-bar");
+        StatusBar.addIndicator(APPLICATION_NAME, encodingMenu, true);
+
+        /**
+         * Connect to node
+         */
+        nodeConnection.connect(true).done(function () {
+            nodeConnection.loadDomains([modulePath], true).done(function () {
+                log("Successfully loaded");
+            }).fail(function (err) {
+                log("Failed to load domain : " + err);
+            });
         }).fail(function (err) {
-            log("Failed to load domain : " + err);
+            log("Failed to establish a connection with Node : " + err);
         });
-    }).fail(function (err) {
-        log("Failed to establish a connection with Node : " + err);
-    });
 
-    /**
-     * Replace the read function to the alternative one
-     */
-    File.prototype.originalRead = File.prototype.read;
-    File.prototype.read = alternativeReadFunc;
-    File.prototype.originalWrite = File.prototype.write;
-    File.prototype.write = alternativeWriteFunc;
+        /**
+         * Replace the read function to the alternative one
+         */
+        File.prototype.originalRead = File.prototype.read;
+        File.prototype.read = alternativeReadFunc;
+        File.prototype.originalWrite = File.prototype.write;
+        File.prototype.write = alternativeWriteFunc;
+    });
 });

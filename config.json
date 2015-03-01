@@ -1,0 +1,119 @@
+{
+    "encodings": [
+        {
+            "code": "UTF-8",
+            "category": "Unicode"
+        }, {
+            "code": "UTF-16",
+            "category": "Unicode"
+        }, {
+            "code": "WINDOWS1256",
+            "category": "Arabic"
+        }, {
+            "code": "ISO-8859-6",
+            "category": "Arabic"
+        }, {
+            "code": "ISO-8859-7",
+            "category": "Greek"
+        }, {
+            "code": "WINDOWS1253",
+            "category": "Greek"
+        }, {
+            "code": "ISO-8859-5",
+            "category": "Cyrillic"
+        }, {
+            "code": "WINDOWS1251",
+            "category": "Cyrillic"
+        }, {
+            "code": "KOI8-R",
+            "category": "Cyrillic"
+        }, {
+            "code": "KOI8-U",
+            "category": "Cyrillic"
+        }, {
+            "code": "ISO-8859-14",
+            "category": "Celtic"
+        }, {
+            "code": "ISO-8859-11",
+            "category": "Thai"
+        }, {
+            "code": "WINDOWS874",
+            "category": "Thai"
+        }, {
+            "code": "ISO-8859-9",
+            "category": "Turkish"
+        }, {
+            "code": "WINDOWS1254",
+            "category": "Turkish"
+        }, {
+            "code": "ISO-8859-4",
+            "category": "Baltic"
+        }, {
+            "code": "ISO-8859-13",
+            "category": "Baltic"
+        }, {
+            "code": "WINDOWS1257",
+            "category": "Baltic"
+        }, {
+            "code": "VISCII",
+            "category": "Vietnamese"
+        }, {
+            "code": "WINDOWS1258",
+            "category": "Vietnamese"
+        }, {
+            "code": "WINDOWS1255",
+            "category": "Hebrew"
+        }, {
+            "code": "ISO-8859-8",
+            "category": "Hebrew"
+        }, {
+            "code": "SHIFT_JIS",
+            "category": "Japanese"
+        }, {
+            "code": "WINDOWS932",
+            "category": "Japanese"
+        }, {
+            "code": "EUC-JP",
+            "category": "Japanese"
+        }, {
+            "code": "EUC-KR",
+            "category": "Korean"
+        }, {
+            "code": "WINDOWS949",
+            "category": "Korean"
+        }, {
+            "code": "GBK",
+            "category": "Chinese"
+        }, {
+            "code": "GB18030",
+            "category": "Chinese"
+        }, {
+            "code": "WINDOWS936",
+            "category": "Chinese"
+        }, {
+            "code": "BIG5",
+            "category": "Chinese"
+        }, {
+            "code": "BIG5-HKSCS",
+            "category": "Chinese"
+        }, {
+            "code": "WINDOWS1252",
+            "category": "Western Europe"
+        }, {
+            "code": "ISO-8859-15",
+            "category": "Western Europe"
+        }, {
+            "code": "ISO-8859-2",
+            "category": "Central Europe"
+        }, {
+            "code": "WINDOWS1250",
+            "category": "Central Europe"
+        }, {
+            "code": "ISO-8859-3",
+            "category": "Southern Europe"
+        }, {
+            "code": "ISO-8859-10",
+            "category": "Northern Europe"
+        }
+    ]
+}
