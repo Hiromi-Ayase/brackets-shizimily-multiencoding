@@ -57,7 +57,7 @@ define(function (require, exports, module) {
     var stats2fsStats = function (path, stats) {
         var options = {
             isFile: true,
-            mtime: stats.mtime,
+            mtime: new Date(stats.mtime),
             size: stats.size,
             realPath: path,
             hash: stats.hash
@@ -137,7 +137,6 @@ define(function (require, exports, module) {
                             }
                         } finally {
                             file._encoding.read = file._encoding.write;
-                            file._fileSystem._fireChangeEvent(file);
                         }
                     });
                 }).fail(function (err) {
@@ -198,8 +197,6 @@ define(function (require, exports, module) {
                     callback(err, data, stats);
                 }
             });
-        } else if (file._encoding.read === DEFAULT_ENCODING.read) {
-            this.originalRead(options, callback);
         } else {
             readFile(file, callback);
         }

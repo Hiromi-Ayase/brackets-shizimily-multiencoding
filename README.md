@@ -21,6 +21,8 @@ Document is encoded and decoded by iconv-lite.
 4. All widespread multibyte encodings: CP932, CP936, CP949, CP950, GB2313, GBK, GB18030, Big5, Shift_JIS, EUC-JP.
 
 ### Updates
+[2015/03/02] 0.0.7 Bug fix, tested on Brackets 1.2
+
 [2015/03/02] 0.0.6 Bug fix;
 
 [2015/03/01] 0.0.5 Bug fix;
@@ -37,4 +39,4 @@ Document is encoded and decoded by iconv-lite.
 MIT-licensed.
 
 ### Compatibility
-Tested on Brackets Release 1.1.0 Windows.
+Tested on Brackets Release 1.2.0 Windows.
