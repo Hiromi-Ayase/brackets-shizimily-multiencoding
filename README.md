@@ -1,4 +1,4 @@
-# Shizimily Multiencoding for Brackets
+# Shizimily Multi-Encoding for Brackets
 An extension for [Brackets](https://github.com/adobe/brackets/) to read and write non UTF-8 encoding file.
 
 ### How to Install
@@ -21,6 +21,8 @@ Document is encoded and decoded by iconv-lite.
 4. All widespread multibyte encodings: CP932, CP936, CP949, CP950, GB2313, GBK, GB18030, Big5, Shift_JIS, EUC-JP.
 
 ### Updates
+[2015/03/02] 0.0.8 Added "Force" option to open the specified file forcibly
+
 [2015/03/02] 0.0.7 Bug fix, tested on Brackets 1.2
 
 [2015/03/02] 0.0.6 Bug fix;

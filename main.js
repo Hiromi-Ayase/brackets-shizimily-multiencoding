@@ -27,7 +27,9 @@ define(function (require, exports, module) {
             auto: true
         };
 
+    var firstQueue = [];
     var currentDocument = {};
+    var force = false;
 
     /**
      * Log the message to the console
@@ -38,10 +40,18 @@ define(function (require, exports, module) {
     };
 
     /**
+     * Error Log the message to the console
+     * @param {String} message The message
+     */
+    var errorLog = function (message) {
+        console.error("[" + APPLICATION_NAME + "] " + message);
+    };
+
+    /**
      * Set the status bar text
      */
     var setStatusBarText = function () {
-        var currentEncoding = "(none)";
+        var currentEncoding = "UTF-8";
         if (currentDocument.file !== undefined && currentDocument.file._encoding !== undefined) {
             currentEncoding = currentDocument.file._encoding.write;
         }
@@ -73,36 +83,45 @@ define(function (require, exports, module) {
      * @param {Function} callback The the Brackets' original read callback
      */
     var readFile = function (file, callback) {
-        if (nodeConnection.domains && nodeConnection.domains.shizimily) {
-            var path = file._path;
-            var cmd = nodeConnection.domains.shizimily;
-            cmd.getFileStats(path).done(function (stats) {
-                var fsStats = stats2fsStats(path, stats);
-                var encoding;
-                if (file._encoding.auto) {
-                    encoding = fsStats._encoding;
-                } else {
-                    encoding = file._encoding.read;
-                }
-                cmd.readFile(path, encoding).done(function (data) {
-                    file._hash = fsStats._hash;
-                    file._encoding.read = encoding;
-                    file._encoding.write = encoding;
-                    if (file._isWatched()) {
-                        file._stat = fsStats;
-                        file._contents = data;
-                    }
-                    callback(null, data, fsStats);
-                    setStatusBarText();
-                }).fail(function (err) {
-                    log('Failed to read file - ' + err);
+        var path = file._path;
+        var cmd = nodeConnection.domains.shizimily;
+        cmd.getFileStats(path).done(function (stats) {
+            if (stats.encodingConfidence < 0.7) {
+                if (!force) {
+                    errorLog('Failed to read file - Cannot detect encoding: ' + stats.encodingConfidence * 100 + '%');
                     callback(ERROR_MESSAGE_UNSUPPORTED_ENCODING);
-                });
+                    return;
+                } else {
+                    if (!stats.encoding) {
+                        stats.encoding = "UTF-8";
+                    }
+                }
+            }
+            var fsStats = stats2fsStats(path, stats);
+            var encoding;
+            if (file._encoding.auto) {
+                encoding = fsStats._encoding;
+            } else {
+                encoding = file._encoding.read;
+            }
+            cmd.readFile(path, encoding).done(function (data) {
+                file._hash = fsStats._hash;
+                file._encoding.read = encoding;
+                file._encoding.write = encoding;
+                if (file._isWatched()) {
+                    file._stat = fsStats;
+                    file._contents = data;
+                }
+                callback(null, data, fsStats);
+                setStatusBarText();
             }).fail(function (err) {
-                log('Failed to get stats - ' + err);
+                errorLog('Failed to read file - ' + err);
                 callback(ERROR_MESSAGE_UNSUPPORTED_ENCODING);
             });
-        }
+        }).fail(function (err) {
+            errorLog('Failed to get stats - ' + err);
+            callback(ERROR_MESSAGE_UNSUPPORTED_ENCODING);
+        });
     };
 
     /**
@@ -113,50 +132,48 @@ define(function (require, exports, module) {
      * @param {Function} callback The the Brackets' original read callback
      */
     var writeFile = function (file, data, options, callback) {
-        if (nodeConnection.domains && nodeConnection.domains.shizimily) {
-            var path = file._path;
-            var cmd = nodeConnection.domains.shizimily;
+        var path = file._path;
+        var cmd = nodeConnection.domains.shizimily;
 
-            var _finishWrite = function (created, stat) {
-                cmd.writeFile(path, data, file._encoding.write).done(function (data) {
-                    cmd.getFileStats(path).done(function (stat) {
-                        stat = stats2fsStats(path, stat);
-                        try {
-                            file._hash = stat._hash;
-                            if (file._isWatched()) {
-                                file._stat = stat;
-                                file._contents = data;
-                            }
-                            if (created) {
-                                var parent = file._fileSystem.getDirectoryForPath(file.parentPath);
-                                file._fileSystem._handleDirectoryChange(parent, function (added, removed) {
-                                    callback(null, stat);
-                                });
-                            } else {
-                                callback(null, stat);
-                            }
-                        } finally {
-                            file._encoding.read = file._encoding.write;
+        var _finishWrite = function (created, stat) {
+            cmd.writeFile(path, data, file._encoding.write).done(function (data) {
+                cmd.getFileStats(path).done(function (stat) {
+                    stat = stats2fsStats(path, stat);
+                    try {
+                        file._hash = stat._hash;
+                        if (file._isWatched()) {
+                            file._stat = stat;
+                            file._contents = data;
                         }
-                    });
-                }).fail(function (err) {
-                    callback(err);
-                    log('Failed to write to the file - ' + err);
+                        if (created) {
+                            var parent = file._fileSystem.getDirectoryForPath(file.parentPath);
+                            file._fileSystem._handleDirectoryChange(parent, function (added, removed) {
+                                callback(null, stat);
+                            });
+                        } else {
+                            callback(null, stat);
+                        }
+                    } finally {
+                        file._encoding.read = file._encoding.write;
+                    }
                 });
-            };
-
-            cmd.getFileStats(path).done(function (stats) {
-                var fsStats = stats2fsStats(path, stats);
-
-                if (options.hasOwnProperty("expectedHash") && options.expectedHash !== fsStats._hash) {
-                    callback(FileSystemError.CONTENTS_MODIFIED);
-                } else {
-                    _finishWrite(false, fsStats);
-                }
             }).fail(function (err) {
-                _finishWrite(true);
+                callback(err);
+                errorLog('Failed to write to the file - ' + err);
             });
-        }
+        };
+
+        cmd.getFileStats(path).done(function (stats) {
+            var fsStats = stats2fsStats(path, stats);
+
+            if (options.hasOwnProperty("expectedHash") && options.expectedHash !== fsStats._hash) {
+                callback(FileSystemError.CONTENTS_MODIFIED);
+            } else {
+                _finishWrite(false, fsStats);
+            }
+        }).fail(function (err) {
+            _finishWrite(true);
+        });
     };
 
     /**
@@ -165,6 +182,11 @@ define(function (require, exports, module) {
      * @param {Function} callback Original argument
      */
     var alternativeReadFunc = function (options, callback) {
+        // If it is first call, the Shizimily domain is not prepared.
+        if (!nodeConnection.domains || !nodeConnection.domains.shizimily) {
+            firstQueue.push({"t": this, "options": options, "callback": callback});
+        }
+
         if (typeof (options) === "function") {
             callback = options;
             options = {};
@@ -182,6 +204,7 @@ define(function (require, exports, module) {
                 auto: DEFAULT_ENCODING.auto
             };
         }
+
         if (file._contents && file._stat) {
             callback(null, file._contents, file._stat);
         } else if (file._encoding.auto) {
@@ -269,8 +292,8 @@ define(function (require, exports, module) {
                     .then(function (text) {
                         currentDocument.refreshText(text, new Date());
                     }).fail(function (err) {
-                        console.log("Error reloading contents of " + currentDocument.file.fullPath);
-                        console.log(err);
+                        console.errorLog("Error reloading contents of " + currentDocument.file.fullPath);
+                        console.errorLog(err);
                     });
             }
         });
@@ -281,14 +304,19 @@ define(function (require, exports, module) {
      * @returns {Object} The dropdown button object
      */
     var createButton = function (encodings) {
-        encodings.unshift("", "---");
+        encodings.unshift("Force", "Auto", "---");
         var button = new DropdownButton.DropdownButton("Encoding:(none)", encodings, function (item, i) {
             var currentEncoding = currentDocument.file._encoding || DEFAULT_ENCODING,
                 enabled = currentDocument.file._encoding !== undefined;
             var html;
             if (item === "---") {
                 html = "---";
-            } else if (item === "") {
+            } else if (item === "Force") {
+                html = "Force to open";
+                if (force) {
+                    html = "<span class='checked-language'></span>" + html;
+                }
+            } else if (item === "Auto") {
                 html = 'Auto Detect' + "<span class='default-language'>";
                 if (currentEncoding.auto) {
                     html = "<span class='checked-language'></span>" + html;
@@ -310,11 +338,13 @@ define(function (require, exports, module) {
         button.setChecked(2, true);
         button.dropdownExtraClasses = "dropdown-status-bar";
         button.on("select", function (e, encoding) {
-            if (!encoding) {
+            if (encoding === "Auto") {
                 currentDocument.file._encoding.auto = !currentDocument.file._encoding.auto;
                 if (currentDocument.file._encoding.auto) {
                     reloadFile("Reload the file? (Auto Detect encoding)");
                 }
+            } else if (encoding === "Force") {
+                force = !force;
             } else {
                 currentDocument.file._encoding.write = encoding.code;
                 if (encoding.code !== currentDocument.file._encoding.read) {
@@ -326,7 +356,7 @@ define(function (require, exports, module) {
         return button;
     };
 
-
+    // init after load config
     configPromise.done(function (file) {
         var config = $.parseJSON(file);
         var button = createButton(config.encodings);
@@ -348,11 +378,15 @@ define(function (require, exports, module) {
         nodeConnection.connect(true).done(function () {
             nodeConnection.loadDomains([modulePath], true).done(function () {
                 log("Successfully loaded");
+                // Load the file after the Shizimily domain is loaded.
+                $.each(firstQueue, function (i, q) {
+                    alternativeReadFunc.bind(q.t)(q.options, q.callback);
+                });
             }).fail(function (err) {
-                log("Failed to load domain : " + err);
+                errorLog("Failed to load domain : " + err);
             });
         }).fail(function (err) {
-            log("Failed to establish a connection with Node : " + err);
+            errorLog("Failed to establish a connection with Node : " + err);
         });
 
         /**

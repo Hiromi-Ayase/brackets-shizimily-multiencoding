@@ -17,9 +17,6 @@
     var cmdGetFileStats = function (filePath) {
         if (fs.existsSync(filePath)) {
             var encoding = jschardet.detect(fs.readFileSync(filePath));
-            if (encoding.confidence < 0.7) {
-                throw new Error('Error while detecting encoding : Confidence = ' + encoding.confidence);
-            }
             var stats = fs.statSync(filePath);
             stats.encoding = encoding.encoding;
             stats.encodingConfidence = encoding.confidence;
